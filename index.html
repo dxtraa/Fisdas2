@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator Regenerative Braking Sederhana (PhET Style)</title>
+    <!-- Tailwind CSS untuk Styling Modern -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons untuk Ikon Indah -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js untuk Grafik Real-time -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- KaTeX untuk Render Rumus Matematika Cantik & Jelas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+        }
+        .glassmorphism {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-emerald-600 rounded-lg text-white shadow-lg shadow-emerald-900/30">
+                    <i data-lucide="zap" class="w-6 h-6 animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight text-white">Regenerative Braking Sederhana</h1>
+                    <p class="text-xs text-emerald-400 font-semibold tracking-wide uppercase">Alat Peraga Fisika Dasar - EM2 & OSI</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleModal('modal-teori')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> Teori Dasar
+                </button>
+                <button onclick="toggleModal('modal-rab')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition">
+                    <i data-lucide="shopping-bag" class="w-4 h-4"></i> Daftar Alat & RAB
+                </button>
+                <button onclick="resetSimulation()" class="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto p-4 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+        
+        <!-- Left Panel: Kontrol Parameter (3 Cols) -->
+        <section class="lg:col-span-3 flex flex-col gap-4">
+            <!-- Parameter Suspensi & Osilasi -->
+            <div class="glassmorphism p-4 rounded-2xl flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-slate-700/50 pb-2">
+                    <i data-lucide="sliders" class="text-emerald-400 w-5 h-5"></i>
+                    <h2 class="font-bold text-sm tracking-wider uppercase text-slate-300">Parameter Osilasi</h2>
+                </div>
+                
+                <!-- Amplitudo Awal -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Amplitudo Awal ($A$)</span>
+                        <span class="text-emerald-400 font-bold" id="val-amplitude">5.0 cm</span>
+                    </div>
+                    <input type="range" id="param-amplitude" min="2" max="10" step="0.5" value="5" class="w-full accent-emerald-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Massa Beban -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Massa Beban ($m$)</span>
+                        <span class="text-emerald-400 font-bold" id="val-mass">100 gr</span>
+                    </div>
+                    <input type="range" id="param-mass" min="50" max="250" step="10" value="100" class="w-full accent-emerald-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Konstanta Pegas -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Konstanta Pegas ($k$)</span>
+                        <span class="text-emerald-400 font-bold" id="val-spring">25 N/m</span>
+                    </div>
+                    <input type="range" id="param-spring" min="10" max="60" step="2" value="25" class="w-full accent-emerald-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Redaman Suspensi (Damping) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Redaman (Suspensi Friction)</span>
+                        <span class="text-emerald-400 font-bold" id="val-damping">Medium</span>
+                    </div>
+                    <input type="range" id="param-damping" min="0.01" max="0.1" step="0.01" value="0.04" class="w-full accent-emerald-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Parameter Elektromagnetik (Hukum Faraday) -->
+            <div class="glassmorphism p-4 rounded-2xl flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-slate-700/50 pb-2">
+                    <i data-lucide="cpu" class="text-amber-400 w-5 h-5"></i>
+                    <h2 class="font-bold text-sm tracking-wider uppercase text-slate-300">Parameter Generator</h2>
+                </div>
+
+                <!-- Jumlah Lilitan -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Jumlah Lilitan ($N$)</span>
+                        <span class="text-amber-400 font-bold" id="val-turns">500 lilitan</span>
+                    </div>
+                    <input type="range" id="param-turns" min="200" max="1000" step="50" value="500" class="w-full accent-amber-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Kekuatan Magnet Neodymium -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Kekuatan Magnet ($B$)</span>
+                        <span class="text-amber-400 font-bold" id="val-magnet">1.2 Tesla</span>
+                    </div>
+                    <input type="range" id="param-magnet" min="0.5" max="2.0" step="0.1" value="1.2" class="w-full accent-amber-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Nilai Kapasitor -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-400">Kapasitor Penyimpan ($C$)</span>
+                        <span class="text-amber-400 font-bold" id="val-capacitor">1000 µF</span>
+                    </div>
+                    <input type="range" id="param-capacitor" min="470" max="2200" step="10" value="1000" class="w-full accent-amber-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer" disabled>
+                    <span class="text-[10px] text-slate-500 italic block mt-0.5">*Sesuai RAB: Tetap di 1000 µF</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Center Panel: Visualisasi & Canvas (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-4">
+            <!-- Canvas Utama Simulasi -->
+            <div class="glassmorphism p-4 rounded-2xl flex flex-col flex-grow relative overflow-hidden min-h-[420px]">
+                <div class="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1 rounded-full border border-slate-700 text-xs">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                    <span class="font-semibold text-slate-300">Live Peraga</span>
+                </div>
+                
+                <h3 class="font-bold text-sm tracking-wider uppercase text-slate-300 mb-2 flex items-center gap-2">
+                    <i data-lucide="eye" class="text-sky-400 w-4 h-4"></i> Animasi Alat
+                </h3>
+
+                <!-- Area Canvas Gambar -->
+                <div class="flex-grow flex items-center justify-center relative bg-slate-950/40 rounded-xl border border-slate-800/80 p-2 overflow-hidden">
+                    <canvas id="simulation-canvas" class="w-full h-full max-h-[350px] cursor-grab active:cursor-grabbing"></canvas>
+                </div>
+
+                <!-- Kontrol Simulasi & Sakelar LED -->
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <button id="btn-push" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition duration-200 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20">
+                        <i data-lucide="hand" class="w-4 h-4"></i> Tekan & Ayunkan!
+                    </button>
+                    
+                    <button id="btn-switch" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition duration-200 border border-slate-700/50 flex items-center justify-center gap-2">
+                        <i data-lucide="power" class="w-4 h-4 text-rose-500" id="icon-switch"></i>
+                        <span id="text-switch">Sakelar LED: OFF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Instrumen & Output Digital -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="glassmorphism p-3 rounded-xl flex flex-col justify-between">
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">GGL Puncak</span>
+                    <span class="text-xl font-extrabold text-amber-400 mt-1" id="out-ggl">0.00 V</span>
+                </div>
+                <div class="glassmorphism p-3 rounded-xl flex flex-col justify-between">
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Tegangan Kapasitor</span>
+                    <span class="text-xl font-extrabold text-sky-400 mt-1" id="out-vcap">0.00 V</span>
+                </div>
+                <div class="glassmorphism p-3 rounded-xl flex flex-col justify-between">
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Energi Tersimpan</span>
+                    <span class="text-xl font-extrabold text-emerald-400 mt-1" id="out-energy">0.00 mJ</span>
+                </div>
+                <div class="glassmorphism p-3 rounded-xl flex flex-col justify-between">
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Waktu Pengisian</span>
+                    <span class="text-xl font-extrabold text-indigo-400 mt-1" id="out-time">0.00 s</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Analisis Grafik & Data (4 Cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-4">
+            <!-- Grafik Real-time -->
+            <div class="glassmorphism p-4 rounded-2xl flex flex-col gap-3 min-h-[220px]">
+                <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                    <h3 class="font-bold text-sm tracking-wider uppercase text-slate-300 flex items-center gap-2">
+                        <i data-lucide="line-chart" class="text-indigo-400 w-4 h-4"></i> Grafik Osilasi & GGL
+                    </h3>
+                    <select id="graph-select" class="bg-slate-800 text-xs text-slate-300 border border-slate-700 rounded px-2 py-1 outline-none">
+                        <option value="position">Posisi Suspensi</option>
+                        <option value="ggl">GGL Induksi (AC)</option>
+                        <option value="voltage">Tegangan Kapasitor (DC)</option>
+                    </select>
+                </div>
+                <div class="relative h-40 w-full">
+                    <canvas id="realtime-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabel Pengambilan Data Eksperimen -->
+            <div class="glassmorphism p-4 rounded-2xl flex flex-col flex-grow gap-3 max-h-[300px] overflow-hidden">
+                <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                    <h3 class="font-bold text-sm tracking-wider uppercase text-slate-300 flex items-center gap-2">
+                        <i data-lucide="table" class="text-rose-400 w-4 h-4"></i> Hasil Pengamatan
+                    </h3>
+                    <button id="btn-record" class="px-2.5 py-1 bg-rose-600/80 hover:bg-rose-600 text-[10px] font-bold rounded-md flex items-center gap-1 transition">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Catat Data
+                    </button>
+                </div>
+                
+                <div class="overflow-y-auto flex-grow rounded-lg border border-slate-800/60">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-900 text-slate-400 sticky top-0 font-semibold border-b border-slate-800">
+                                <th class="p-2 text-center w-10">No</th>
+                                <th class="p-2 text-center font-serif text-[11px]"><span class="block text-slate-300 font-bold font-sans">A</span>(cm)</th>
+                                <th class="p-2 text-center font-serif text-[11px]"><span class="block text-slate-300 font-bold font-sans">v_max</span>(m/s)</th>
+                                <th class="p-2 text-center font-serif text-[11px]"><span class="block text-slate-300 font-bold font-sans">V_puncak</span>(V)</th>
+                                <th class="p-2 text-center font-serif text-[11px]"><span class="block text-slate-300 font-bold font-sans">t_charge</span>(s)</th>
+                                <th class="p-2 text-center w-12">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Baris kosong default -->
+                            <tr class="text-slate-500 italic" id="empty-row">
+                                <td colspan="6" class="p-4 text-center text-[11px]">Klik "Catat Data" untuk menyimpan kondisi simulasi saat ini.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-3 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>&copy; 2026 Tugas Besar Fisika Dasar - Prototype Regenerative Braking Sederhana</span>
+            <span class="flex items-center gap-1 text-emerald-500/80 font-semibold"><i data-lucide="check-circle" class="w-4 h-4"></i> Pembelajaran Terintegrasi EM2 & OSI</span>
+        </div>
+    </footer>
+
+    <!-- MODAL: TEORI DASAR -->
+    <div id="modal-teori" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glassmorphism max-w-2xl w-full rounded-2xl p-6 shadow-2xl relative">
+            <button onclick="toggleModal('modal-teori')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-xl font-bold text-white mb-4 border-b border-slate-700/50 pb-2 flex items-center gap-2">
+                <i data-lucide="book" class="text-emerald-400"></i> Landasan Teori
+            </h2>
+            <div class="text-sm text-slate-300 space-y-4 max-h-[60vh] overflow-y-auto pr-2" id="teori-content">
+                <p>
+                    <strong>1. Gerak Osilasi Harmonik Sederhana (OSI):</strong><br>
+                    Gerakan naik-turun suspensi pegas-massa mematuhi hukum osilasi. Kecepatan getaran magnet bergantung pada amplitudo awal ($A$) dan frekuensi alami sistem ($f$):
+                    <div class="bg-slate-900/60 p-4 rounded-lg font-mono text-center text-emerald-400 text-sm my-2">
+                        $$v(t) = -A \omega \sin(\omega t)$$
+                        $$v_{\text{max}} = A \cdot \omega = A \cdot (2\pi f)$$
+                    </div>
+                </p>
+                <p>
+                    <strong>2. Hukum Induksi Faraday (EM2):</strong><br>
+                    Saat magnet berosilasi masuk-keluar kumparan dengan $N$ lilitan, perubahan fluks magnetik ($\Delta\Phi/\Delta t$) menginduksi Gaya Gerak Listrik (GGL):
+                    <div class="bg-slate-900/60 p-4 rounded-lg font-mono text-center text-emerald-400 text-sm my-2">
+                        $$\epsilon = -N \frac{\Delta\Phi}{\Delta t}$$
+                    </div>
+                    Dalam simulator ini, tegangan puncak induksi sebanding dengan kecepatan gerak maksimum magnet:
+                    <div class="bg-slate-900/60 p-4 rounded-lg font-mono text-center text-emerald-400 text-sm my-2">
+                        $$\epsilon_{\text{puncak}} = k \cdot v_{\text{max}}$$
+                    </div>
+                    Di mana $k$ adalah konstanta induksi elektromagnetik kumparan-magnet.
+                </p>
+                <p>
+                    <strong>3. Penyearah Jembatan Dioda & Kapasitor:</strong><br>
+                    GGL induksi AC disearahkan oleh dioda bridge dan ditampung ke dalam kapasitor elektrolit ($1000\ \mu\text{F}$). Energi tersimpan di kapasitor memenuhi formula:
+                    <div class="bg-slate-900/60 p-4 rounded-lg font-mono text-center text-emerald-400 text-sm my-2">
+                        $$E = \frac{1}{2} C V^2$$
+                    </div>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DAFTAR ALAT & RAB -->
+    <div id="modal-rab" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glassmorphism max-w-2xl w-full rounded-2xl p-6 shadow-2xl relative">
+            <button onclick="toggleModal('modal-rab')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-xl font-bold text-white mb-4 border-b border-slate-700/50 pb-2 flex items-center gap-2">
+                <i data-lucide="shopping-bag" class="text-amber-400"></i> Daftar Alat, Bahan & RAB
+            </h2>
+            <div class="text-sm text-slate-300 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <p class="text-xs text-slate-400">Berikut adalah daftar lengkap komponen fisik yang sesuai dengan RAB Prototype Fisika untuk memudahkan perakitan di laboratorium.</p>
+                <div class="border border-slate-800 rounded-xl overflow-hidden text-xs">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900 text-slate-300 border-b border-slate-800">
+                                <th class="p-2">Nama Alat & Bahan</th>
+                                <th class="p-2">Spesifikasi Fisik</th>
+                                <th class="p-2 text-right">Perkiraan Biaya</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800">
+                            <tr>
+                                <td class="p-2 font-medium">Magnet Neodymium</td>
+                                <td class="p-2">Silinder tebal, 2 buah</td>
+                                <td class="p-2 text-right text-amber-400">Rp 45.000</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium">Kawat Email Tembaga</td>
+                                <td class="p-2">Diameter 0.2-0.3 mm, ±35 meter</td>
+                                <td class="p-2 text-right text-amber-400">Rp 25.000</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium">Dioda 1N4007</td>
+                                <td class="p-2">4 buah (Dioda Bridge)</td>
+                                <td class="p-2 text-right text-amber-400">Rp 4.000</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium">Kapasitor Elektrolit</td>
+                                <td class="p-2">1000 µF / 16V atau 6.3V</td>
+                                <td class="p-2 text-right text-amber-400">Rp 5.000</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium">LED Merah & Resistor</td>
+                                <td class="p-2">5mm, Resistor 100 $\Omega$</td>
+                                <td class="p-2 text-right text-amber-400">Rp 3.000</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium">Pegas & Batang Suspensi</td>
+                                <td class="p-2">2 pegas pulpen & tabung akrilik</td>
+                                <td class="p-2 text-right text-amber-400">Rp 10.000</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium">Bahan Pendukung</td>
+                                <td class="p-2">Papan kayu triplek, kabel, sakelar</td>
+                                <td class="p-2 text-right text-amber-400">Rp 30.000</td>
+                            </tr>
+                            <tr class="bg-slate-900/60 font-bold border-t border-slate-800">
+                                <td class="p-2 text-emerald-400">Total Estimasi RAB</td>
+                                <td class="p-2">Lengkap Siap Rakit</td>
+                                <td class="p-2 text-right text-emerald-400">Rp 122.000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex items-start gap-2 text-xs">
+                    <i data-lucide="info" class="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <strong class="text-slate-200">Tips Praktikum Mandiri:</strong> Gulunglah kawat email serapi mungkin pada selongsong paralon. Semakin rapat gulungan kumparan, semakin tinggi kerapatan fluks magnetik, meningkatkan konstanta induksi ($k$) secara signifikan.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Utama Kontrol Peraga & Simulasi -->
+    <script>
+        // Inisialisasi Lucide Icons
+        lucide.createIcons();
+
+        // Fungsi Render KaTeX untuk semua elemen matematika di dokumen
+        function applyKaTex() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        // Elemen-elemen DOM Slider & Output
+        const paramAmplitude = document.getElementById('param-amplitude');
+        const paramMass = document.getElementById('param-mass');
+        const paramSpring = document.getElementById('param-spring');
+        const paramDamping = document.getElementById('param-damping');
+        const paramTurns = document.getElementById('param-turns');
+        const paramMagnet = document.getElementById('param-magnet');
+
+        const valAmplitude = document.getElementById('val-amplitude');
+        const valMass = document.getElementById('val-mass');
+        const valSpring = document.getElementById('val-spring');
+        const valDamping = document.getElementById('val-damping');
+        const valTurns = document.getElementById('val-turns');
+        const valMagnet = document.getElementById('val-magnet');
+
+        const outGgl = document.getElementById('out-ggl');
+        const outVcap = document.getElementById('out-vcap');
+        const outEnergy = document.getElementById('out-energy');
+        const outTime = document.getElementById('out-time');
+
+        const canvas = document.getElementById('simulation-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const btnPush = document.getElementById('btn-push');
+        const btnSwitch = document.getElementById('btn-switch');
+        const iconSwitch = document.getElementById('icon-switch');
+        const textSwitch = document.getElementById('text-switch');
+        const btnRecord = document.getElementById('btn-record');
+        const tableBody = document.getElementById('table-body');
+        const emptyRow = document.getElementById('empty-row');
+        const graphSelect = document.getElementById('graph-select');
+
+        // Parameter Fisika Default & State Variabel
+        let amplitude = parseFloat(paramAmplitude.value) / 100; // cm -> m
+        let mass = parseFloat(paramMass.value) / 1000; // gr -> kg
+        let kSpring = parseFloat(paramSpring.value); // N/m
+        let dampingCoeff = parseFloat(paramDamping.value); // b (redaman)
+        let NTurns = parseInt(paramTurns.value); // Lilitan
+        let B_magnet = parseFloat(paramMagnet.value); // Tesla
+        const C_capacitor = 1000e-6; // 1000 uF tetap sesuai deskripsi
+
+        // Variabel Gerak & Waktu
+        let y_pos = 0; // Posisi magnet relatif terhadap posisi setimbang (meter)
+        let velocity = 0; // Kecepatan (m/s)
+        let isMoving = false; // Status apakah sedang berayun
+        let v_cap = 0.0; // Tegangan kapasitor (Volt)
+        let chargeTime = 0.0; // Waktu pengisian total (detik)
+        let isSwitchOn = false; // Sakelar LED
+
+        // Variabel Pengamat Parameter Maksimum untuk Pencatatan Tabel
+        let maxRecordedVmax = 0;
+        let maxRecordedGgl = 0;
+
+        // Dimensi Kanvas Responsif
+        function resizeCanvas() {
+            const rect = canvas.parentNode.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Sinkronisasi Slider ke Variabel Fisika
+        function updateSliders() {
+            amplitude = parseFloat(paramAmplitude.value) / 100;
+            mass = parseFloat(paramMass.value) / 1000;
+            kSpring = parseFloat(paramSpring.value);
+            dampingCoeff = parseFloat(paramDamping.value);
+            NTurns = parseInt(paramTurns.value);
+            B_magnet = parseFloat(paramMagnet.value);
+
+            // Teks Label
+            valAmplitude.textContent = (amplitude * 100).toFixed(1) + " cm";
+            valMass.textContent = (mass * 1000).toFixed(0) + " gr";
+            valSpring.textContent = kSpring.toFixed(0) + " N/m";
+            
+            let dampText = "Medium";
+            if (dampingCoeff < 0.03) dampText = "Lemah (Getar Lama)";
+            else if (dampingCoeff > 0.07) dampText = "Kuat (Cepat Berhenti)";
+            valDamping.textContent = dampText;
+
+            valTurns.textContent = NTurns + " lilitan";
+            valMagnet.textContent = B_magnet.toFixed(1) + " Tesla";
+        }
+
+        [paramAmplitude, paramMass, paramSpring, paramDamping, paramTurns, paramMagnet].forEach(slider => {
+            slider.addEventListener('input', updateSliders);
+        });
+
+        // Event: Tekan & Ayunkan Suspensi
+        btnPush.addEventListener('click', () => {
+            // Reset pemantau nilai maksimum untuk getaran baru ini
+            maxRecordedVmax = 0;
+            maxRecordedGgl = 0;
+            
+            // Beri dorongan simpangan awal
+            y_pos = amplitude;
+            velocity = 0;
+            isMoving = true;
+        });
+
+        // Event: Sakelar LED
+        btnSwitch.addEventListener('click', () => {
+            isSwitchOn = !isSwitchOn;
+            if (isSwitchOn) {
+                btnSwitch.classList.replace('bg-slate-800', 'bg-rose-900/40');
+                btnSwitch.classList.add('border-rose-500/50');
+                iconSwitch.classList.replace('text-rose-500', 'text-rose-400');
+                iconSwitch.classList.add('animate-pulse');
+                textSwitch.textContent = "Sakelar LED: ON";
+            } else {
+                btnSwitch.classList.replace('bg-rose-900/40', 'bg-slate-800');
+                btnSwitch.classList.remove('border-rose-500/50');
+                iconSwitch.classList.replace('text-rose-400', 'text-rose-500');
+                iconSwitch.classList.remove('animate-pulse');
+                textSwitch.textContent = "Sakelar LED: OFF";
+            }
+        });
+
+        // Fungsi Reset seluruh simulasi
+        function resetSimulation() {
+            y_pos = 0;
+            velocity = 0;
+            isMoving = false;
+            v_cap = 0.0;
+            chargeTime = 0.0;
+            isSwitchOn = false;
+            maxRecordedVmax = 0;
+            maxRecordedGgl = 0;
+
+            // Reset UI Sakelar
+            btnSwitch.className = "py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition duration-200 border border-slate-700/50 flex items-center justify-center gap-2";
+            iconSwitch.className = "w-4 h-4 text-rose-500";
+            textSwitch.textContent = "Sakelar LED: OFF";
+
+            // Reset Chart
+            chartData.position = [];
+            chartData.ggl = [];
+            chartData.voltage = [];
+            chartLabels = [];
+            chart.update();
+        }
+
+        // --- SISTEM GRAFIK ---
+        const chartCtx = document.getElementById('realtime-chart').getContext('2d');
+        let chartLabels = [];
+        let chartData = {
+            position: [],
+            ggl: [],
+            voltage: []
+        };
+
+        const chart = new Chart(chartCtx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Nilai Terpilih',
+                    data: chartData.position,
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        display: false
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#94a3b8', font: { size: 9 } }
+                    }
+                }
+            }
+        });
+
+        // Update data grafik setiap beberapa milidetik
+        function addChartData(pos, gglVal, capV) {
+            const maxPoints = 80;
+            chartLabels.push("");
+            chartData.position.push(pos * 100); // cm
+            chartData.ggl.push(gglVal);
+            chartData.voltage.push(capV);
+
+            if (chartLabels.length > maxPoints) {
+                chartLabels.shift();
+                chartData.position.shift();
+                chartData.ggl.shift();
+                chartData.voltage.shift();
+            }
+
+            const activeMetric = graphSelect.value;
+            if (activeMetric === 'position') {
+                chart.data.datasets[0].data = chartData.position;
+                chart.data.datasets[0].borderColor = '#10b981';
+            } else if (activeMetric === 'ggl') {
+                chart.data.datasets[0].data = chartData.ggl;
+                chart.data.datasets[0].borderColor = '#f59e0b';
+            } else if (activeMetric === 'voltage') {
+                chart.data.datasets[0].data = chartData.voltage;
+                chart.data.datasets[0].borderColor = '#38bdf8';
+            }
+            chart.update('none');
+        }
+
+        // --- LOOP UTAMA SIMULASI & FISIKA (60 FPS) ---
+        let lastTime = performance.now();
+        let frameCount = 0;
+
+        function updatePhysics(timestamp) {
+            let dt = (timestamp - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1; // Menjaga stabilitas fisika saat berpindah tab
+            lastTime = timestamp;
+
+            // 1. Fisika Osilasi Teredam (Spring-Mass-Damping System)
+            if (isMoving) {
+                // Persamaan Gerak: F_total = - k*x - b*v = m * a
+                // a = (-k*y - b*v) / m
+                let forceSpring = -kSpring * y_pos;
+                let forceDamping = -dampingCoeff * velocity * 10; // Kalibrasi redaman visual
+                let acceleration = (forceSpring + forceDamping) / mass;
+
+                velocity += acceleration * dt;
+                y_pos += velocity * dt;
+
+                // Stop jika getaran sudah sangat kecil
+                if (Math.abs(y_pos) < 0.001 && Math.abs(velocity) < 0.01) {
+                    y_pos = 0;
+                    velocity = 0;
+                    isMoving = false;
+                }
+            }
+
+            // 2. Hukum Induksi Faraday (GGL Induksi AC)
+            // Kalibrasi konstan ditingkatkan sedikit agar pengisian terasa mantap di getaran medium
+            const constK = (NTurns / 500) * B_magnet * 1.8; // Konstanta Elektromagnetik
+            let gglInstant = constK * velocity;
+
+            // Simpan data puncak khusus untuk ayunan kali ini saja
+            if (isMoving) {
+                if (Math.abs(velocity) > maxRecordedVmax) {
+                    maxRecordedVmax = Math.abs(velocity);
+                }
+                if (Math.abs(gglInstant) > maxRecordedGgl) {
+                    maxRecordedGgl = Math.abs(gglInstant);
+                }
+            }
+
+            // 3. Penyearah Dioda Bridge & Pengisian Kapasitor (DC)
+            let rectifiedGgl = Math.abs(gglInstant) - 1.4;
+            if (rectifiedGgl < 0) rectifiedGgl = 0;
+
+            if (isMoving && rectifiedGgl > v_cap) {
+                // Pengisian Kapasitor (RC Charging terputus-putus)
+                const internalResistance = 12; // Ohm
+                const chargeRate = (rectifiedGgl - v_cap) / (internalResistance * C_capacitor);
+                v_cap += chargeRate * dt;
+                
+                // Kapasitor tidak boleh melebihi tegangan puncak induksi saat itu
+                if (v_cap > rectifiedGgl) v_cap = rectifiedGgl;
+                
+                chargeTime += dt;
+            }
+
+            // Batasan fisik tegangan kapasitor maksimal (Rating Kapasitor 6.3 V sesuai RAB)
+            if (v_cap > 6.3) v_cap = 6.3;
+
+            // 4. Penggunaan Energi (LED dinyalakan menggunakan sakelar)
+            if (isSwitchOn && v_cap > 0.05) {
+                const rLed = 120; // Hambatan pembatas
+                // Arus mengalir lebih cepat saat tegangan tinggi
+                if (v_cap > 1.5) {
+                    v_cap -= (v_cap / (rLed * C_capacitor)) * dt;
+                } else {
+                    // Meredup perlahan di tegangan rendah
+                    v_cap -= (v_cap / (600 * C_capacitor)) * dt;
+                }
+                
+                if (v_cap < 0.01) v_cap = 0;
+            }
+
+            // 5. Output Digital Real-time ke Layar
+            outGgl.textContent = Math.abs(gglInstant).toFixed(2) + " V";
+            outVcap.textContent = v_cap.toFixed(2) + " V";
+            
+            // Energi Tersimpan E = 0.5 * C * V^2 (miliJoule)
+            const energyJoules = 0.5 * C_capacitor * (v_cap * v_cap);
+            outEnergy.textContent = (energyJoules * 1000).toFixed(2) + " mJ";
+            outTime.textContent = chargeTime.toFixed(2) + " s";
+
+            // Render Gambar Animasi & Grafik
+            drawSimulation();
+            
+            frameCount++;
+            if (frameCount % 3 === 0) { // Update grafik setiap 3 frame agar ringan
+                addChartData(y_pos, gglInstant, v_cap);
+            }
+
+            requestAnimationFrame(updatePhysics);
+        }
+
+        // --- ENGINE GAMBAR CANVAS (2D RENDERING) ---
+        function drawSimulation() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const cw = canvas.width / window.devicePixelRatio;
+            const ch = canvas.height / window.devicePixelRatio;
+
+            // Translasi koordinat sistem agar berada di tengah bawah
+            const originX = cw / 2 - 30;
+            const originY = 60; // Posisi dudukan atas pegas
+
+            // 1. Gambar Kerangka Dudukan/Frame Fisik
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(originX - 60, originY);
+            ctx.lineTo(originX + 60, originY); // Dudukan atas
+            ctx.stroke();
+
+            // 2. Gambar Kumparan (Coil) Diam di Tengah Bawah
+            const coilY = originY + 120; // Posisi vertikal kumparan
+            const coilHeight = 110;
+            const coilWidth = 46;
+
+            // Selongsong Kumparan (Transparan)
+            ctx.fillStyle = 'rgba(100, 116, 139, 0.2)';
+            ctx.fillRect(originX - coilWidth/2, coilY, coilWidth, coilHeight);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(originX - coilWidth/2, coilY, coilWidth, coilHeight);
+
+            // Gambar Kawat Tembaga Kumparan (Banyak Lilitan Visual sesuai N)
+            ctx.strokeStyle = '#b45309'; // Warna Tembaga
+            ctx.lineWidth = 2.5;
+            const visualTurns = Math.min(25, Math.max(10, Math.floor(NTurns / 25)));
+            for (let i = 0; i < visualTurns; i++) {
+                const turnY = coilY + 6 + (i * (coilHeight - 12) / (visualTurns - 1));
+                ctx.beginPath();
+                ctx.arc(originX, turnY, coilWidth/2 - 2, -Math.PI/2, Math.PI/2);
+                ctx.stroke();
+            }
+
+            // 3. Gambar Pegas Atas
+            const magnetTargetY = originY + 80 + (y_pos * 400); // Skala visual simpangan magnet (1m = 400px)
+            
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(originX, originY);
+            
+            // Gambar pegas berulir (Zigzag)
+            const springTurns = 12;
+            const springHeight = magnetTargetY - originY - 15;
+            for (let i = 0; i <= springTurns; i++) {
+                const fraction = i / springTurns;
+                const springX = originX + (i % 2 === 0 ? 10 : -10) * (fraction === 0 || fraction === 1 ? 0 : 1);
+                const springY = originY + fraction * springHeight;
+                ctx.lineTo(springX, springY);
+            }
+            ctx.stroke();
+
+            // 4. Gambar Batang Magnet Neodymium (Bergerak sesuai y_pos)
+            const magnetWidth = 22;
+            const magnetHeight = 65;
+            const magnetTop = magnetTargetY - 15;
+
+            // Kutub Utara (Merah)
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(originX - magnetWidth/2, magnetTop, magnetWidth, magnetHeight / 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 8px sans-serif';
+            ctx.fillText('N', originX - 3, magnetTop + 13);
+
+            // Kutub Selatan (Biru)
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(originX - magnetWidth/2, magnetTop + magnetHeight / 2, magnetWidth, magnetHeight / 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('S', originX - 3, magnetTop + magnetHeight / 2 + 15);
+
+            // Beban Logam Tambahan (Mur logam 50-100 gr di bagian atas magnet)
+            ctx.fillStyle = '#cbd5e1';
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(originX, magnetTop - 6, 14, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.arc(originX, magnetTop - 6, 6, 0, 2*Math.PI);
+            ctx.fill();
+
+            // Label Beban Massa
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '8px sans-serif';
+            ctx.fillText((mass * 1000).toFixed(0) + "g", originX - 10, magnetTop - 20);
+
+            // 5. Skema Rangkaian Listrik Dioda Bridge & Kapasitor ke LED
+            const circX = originX + 110;
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+
+            // Kabel dari Kumparan ke Dioda Bridge
+            ctx.beginPath();
+            ctx.moveTo(originX + coilWidth/2, coilY + 20);
+            ctx.lineTo(circX - 20, coilY + 20);
+            ctx.moveTo(originX + coilWidth/2, coilY + coilHeight - 20);
+            ctx.lineTo(circX - 20, coilY + coilHeight - 20);
+            ctx.stroke();
+
+            // Kotak Penyearah (Dioda Bridge)
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#f59e0b';
+            ctx.fillRect(circX - 20, coilY + 15, 40, coilHeight - 30);
+            ctx.strokeRect(circX - 20, coilY + 15, 40, coilHeight - 30);
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 8px sans-serif';
+            ctx.fillText('DIODA', circX - 14, coilY + 45);
+            ctx.fillText('BRIDGE', circX - 16, coilY + 57);
+
+            // Kabel output DC dari Dioda Bridge ke Kapasitor & LED
+            ctx.strokeStyle = '#0284c7'; // Biru DC
+            ctx.beginPath();
+            ctx.moveTo(circX + 20, coilY + 30); // Positif
+            ctx.lineTo(circX + 50, coilY + 30);
+            ctx.moveTo(circX + 20, coilY + coilHeight - 30); // Negatif
+            ctx.lineTo(circX + 50, coilY + coilHeight - 30);
+            ctx.stroke();
+
+            // Gambar Kapasitor Elektrolit C
+            const capX = circX + 50;
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            // Plat positif (Kiri)
+            ctx.beginPath();
+            ctx.moveTo(capX, coilY + 15);
+            ctx.lineTo(capX, coilY + coilHeight - 15);
+            ctx.stroke();
+            // Plat negatif (Kanan melengkung)
+            ctx.beginPath();
+            ctx.arc(capX + 10, coilY + coilHeight/2, 28, Math.PI - 0.7, Math.PI + 0.7);
+            ctx.stroke();
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.fillText('C', capX - 4, coilY + 10);
+            ctx.fillText('1000 µF', capX - 18, coilY + coilHeight - 2);
+
+            // Indikator Kapasitor terisi warna biru menyala
+            if (v_cap > 0.05) {
+                ctx.fillStyle = `rgba(56, 189, 248, ${Math.min(1.0, 0.2 + (v_cap / 6.3))})`;
+                ctx.beginPath();
+                ctx.arc(capX + 5, coilY + coilHeight/2, 10, 0, 2*Math.PI);
+                ctx.fill();
+            }
+
+            // Jalur Kabel ke LED (Melalui Sakelar)
+            const ledStartX = capX + 25;
+            ctx.strokeStyle = (isSwitchOn && v_cap > 1.0) ? '#ef4444' : '#475569';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(capX + 10, coilY + 30);
+            ctx.lineTo(ledStartX + 30, coilY + 30);
+            ctx.moveTo(capX + 10, coilY + coilHeight - 30);
+            ctx.lineTo(ledStartX + 30, coilY + coilHeight - 30);
+            ctx.stroke();
+
+            // Gambar LED Merah
+            const ledX = ledStartX + 30;
+            const ledY = coilY + coilHeight / 2;
+
+            // EFEK PANCARAN SINAR LED JIK MENYALA (PENINGKATAN VISUAL)
+            if (isSwitchOn && v_cap > 1.0) {
+                // Skala kecerahan berdasarkan tegangan kapasitor (maksimal pada 6.3V)
+                const brightness = Math.min(1.0, (v_cap - 1.0) / 4.0); 
+                
+                // Tambahkan efek denyutan (pulsating) dinamis agar pendaran cahaya terasa hidup
+                const pulse = 1 + 0.12 * Math.sin(Date.now() / 90);
+                const glowRadius = 45 * brightness * pulse;
+                
+                // Gradien radial besar untuk pendaran halus (Aura)
+                const glowGrad = ctx.createRadialGradient(ledX, ledY, 2, ledX, ledY, glowRadius);
+                glowGrad.addColorStop(0, 'rgba(239, 68, 68, 0.95)');
+                glowGrad.addColorStop(0.2, 'rgba(239, 68, 68, 0.6)');
+                glowGrad.addColorStop(0.5, 'rgba(239, 68, 68, 0.25)');
+                glowGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                
+                ctx.fillStyle = glowGrad;
+                ctx.beginPath();
+                ctx.arc(ledX, ledY, glowRadius, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Gradien kecil super terang di titik pusat semikonduktor (Core Emission)
+                const coreGrad = ctx.createRadialGradient(ledX, ledY, 0, ledX, ledY, 12);
+                coreGrad.addColorStop(0, '#ffffff'); // Putih menyala di tengah
+                coreGrad.addColorStop(0.4, '#fca5a5'); // Pink hangat
+                coreGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                ctx.fillStyle = coreGrad;
+                ctx.beginPath();
+                ctx.arc(ledX, ledY, 12, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Tulisan Indikator Status di atas LED
+                ctx.fillStyle = '#fecaca';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.shadowColor = '#ef4444';
+                ctx.shadowBlur = 4;
+                ctx.fillText('⚡ LED AKTIF', ledX - 25, ledY - 22);
+                ctx.shadowBlur = 0; // Reset bayangan
+            }
+
+            // Segitiga LED
+            ctx.fillStyle = (isSwitchOn && v_cap > 1.0) ? '#ff3333' : '#334155';
+            ctx.strokeStyle = (isSwitchOn && v_cap > 1.0) ? '#ffe4e6' : '#475569';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(ledX - 8, ledY - 10);
+            ctx.lineTo(ledX - 8, ledY + 10);
+            ctx.lineTo(ledX + 6, ledY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Garis Penghalang Katoda LED
+            ctx.beginPath();
+            ctx.moveTo(ledX + 6, ledY - 10);
+            ctx.lineTo(ledX + 6, ledY + 10);
+            ctx.stroke();
+
+            // Teks LED Label
+            ctx.fillStyle = (isSwitchOn && v_cap > 1.0) ? '#fca5a5' : '#64748b';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.fillText('LED', ledX - 10, ledY - 14);
+
+            // 6. Indikator Arah Fluks / Panah Arus (Animasi Gerak)
+            if (isMoving && Math.abs(velocity) > 0.1) {
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                const arrowOffset = (Date.now() / 8) % 30;
+                
+                // Panah pada kabel atas induksi
+                ctx.beginPath();
+                if (velocity > 0) {
+                    ctx.moveTo(originX + coilWidth/2 + arrowOffset - 10, coilY + 20);
+                    ctx.lineTo(originX + coilWidth/2 + arrowOffset, coilY + 20);
+                    ctx.lineTo(originX + coilWidth/2 + arrowOffset - 4, coilY + 16);
+                } else {
+                    ctx.moveTo(originX + coilWidth/2 + 30 - arrowOffset, coilY + 20);
+                    ctx.lineTo(originX + coilWidth/2 + 20 - arrowOffset, coilY + 20);
+                    ctx.lineTo(originX + coilWidth/2 + 24 - arrowOffset, coilY + 16);
+                }
+                ctx.stroke();
+            }
+        }
+
+        // --- SISTEM PENCATATAN TABEL EKSPERIMEN ---
+        let recordCount = 0;
+        btnRecord.addEventListener('click', () => {
+            // Hindari mencatat jika belum ada osilasi yang dilakukan
+            if (maxRecordedVmax === 0) {
+                alert("Harap tekan tombol 'Tekan & Ayunkan!' terlebih dahulu untuk menghasilkan getaran mekanik.");
+                return;
+            }
+
+            // Sembunyikan pesan kosong
+            emptyRow.classList.add('hidden');
+
+            recordCount++;
+            const ampCm = (amplitude * 100).toFixed(1);
+            const vMaxVal = maxRecordedVmax.toFixed(3);
+            const peakGglVal = maxRecordedGgl.toFixed(2);
+            const tFill = chargeTime > 0 ? chargeTime.toFixed(2) + " s" : "0.00 s";
+
+            const row = document.createElement('tr');
+            row.className = "border-b border-slate-800 hover:bg-slate-800/40 text-slate-300 text-[11px] text-center";
+            row.innerHTML = `
+                <td class="p-2 text-center text-slate-400 font-bold">${recordCount}</td>
+                <td class="p-2">${ampCm}</td>
+                <td class="p-2 font-mono">${vMaxVal}</td>
+                <td class="p-2 text-amber-400 font-semibold font-mono">${peakGglVal}</td>
+                <td class="p-2 text-indigo-400 font-semibold font-mono">${tFill}</td>
+                <td class="p-2 text-center">
+                    <button onclick="deleteRow(this)" class="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-slate-700/50">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+            lucide.createIcons(); // Re-render ikon sampah baru
+        });
+
+        function deleteRow(btn) {
+            btn.closest('tr').remove();
+            if (tableBody.querySelectorAll('tr:not(#empty-row)').length === 0) {
+                emptyRow.classList.remove('hidden');
+                recordCount = 0;
+            }
+        }
+
+        // --- SISTEM MODAL INTERAKTIF ---
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+            // Trigger ulang pemrosesan KaTeX jika modal teori dasar dibuka
+            if (modalId === 'modal-teori' && !modal.classList.contains('hidden')) {
+                setTimeout(applyKaTex, 50);
+            }
+        }
+
+        // Mulai Loop Animasi & Render Matematika
+        window.onload = function() {
+            updateSliders();
+            applyKaTex();
+            requestAnimationFrame(updatePhysics);
+        };
+        
+        // Pemicu rendering KaTeX tambahan setelah DOM siap
+        document.addEventListener("DOMContentLoaded", function() {
+            applyKaTex();
+        });
+    </script>
+</body>
+</html>
